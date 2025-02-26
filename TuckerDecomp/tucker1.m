@@ -1,26 +1,36 @@
-clc; clear; close all;
-%addpath('tensor_toolbox'); % Library koji nam treba za tenzore
+clear; clc;
 
-% Pretvorimo sliku u tenzor
-img = im2double(imread('your_image.jpg')); % Load an image
-tensor_img = tensor(img); % Convert image to tensor
+% Generiramo 3D tenzor
+I = 10; J = 10; K = 10; % Dimensions of the tensor
+X = randn(I, J, K);     % Random 3D tensor of size I x J x K
 
-% Definiramo dimenzije jezgre dimensions (rank reduction)
-core_dims = [size(img, 1) * 0.5, size(img, 2) * 0.5, size(img, 3)];
+% Napravimo Tucker dekompoziciju
+% Specificiramo rankove
+R1 = 5; % Rank for mode 1
+R2 = 5; % Rank for mode 2
+R3 = 5; % Rank for mode 3
 
-% napravimo Tucker dekompoziciju
-[G, U] = tucker(tensor_img, round(core_dims));
+% Napravimo Tucker dekompoziciju koristeci Tensor toolbox
+[G, U1, U2, U3] = tucker_als(X, [R1, R2, R3]);
 
-% Rekonstruiramo sliku
-reconstructed_img = full(ttensor(G, U));
+% Rekonstuiramo tenzor iz dekompozicije
+X_reconstructed = ttm(G, {U1, U2, U3}, [1, 2, 3]);
 
-% Prikazemo originalnu sliku i sliku dobivenu dekompresijom
+% Evaluiramo gresku
+reconstruction_error = norm(X(:) - X_reconstructed(:)) / norm(X(:));
+fprintf('Reconstruction Error: %.4f\n', reconstruction_error);
+
+% Vizualiziramo originalni i rekonstruirani tenzor
+slice_original = X(:, :, 1); % First slice of the original tensor
+slice_reconstructed = X_reconstructed(:, :, 1); % First slice of the reconstructed tensor
+
 figure;
-subplot(1, 2, 1); imshow(img); title('Original Image');
-subplot(1, 2, 2); imshow(double(reconstructed_img)); title('Reconstructed Image');
+subplot(1, 2, 1);
+imagesc(slice_original);
+title('Original Tensor Slice');
+colorbar;
 
-% Prikazemo omjer
-original_size = numel(img);
-compressed_size = numel(G) + sum(cellfun(@numel, U));
-compression_ratio = compressed_size / original_size;
-disp(['Compression Ratio: ', num2str(compression_ratio)]);
+subplot(1, 2, 2);
+imagesc(slice_reconstructed);
+title('Reconstructed Tensor Slice');
+colorbar;
